@@ -81,7 +81,10 @@ func runHttpServer() *http.ServeMux {
 }
 
 func runGrpcServer() *grpc.Server {
-	s := grpc.NewServer()
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(HelloInterceptor),
+	}
+	s := grpc.NewServer(opts...)
 	pb.RegisterTagServiceServer(s, server.NewTagServer())
 	reflection.Register(s)
 
@@ -121,4 +124,11 @@ func grpcGatewayError(ctx context.Context, _ *runtime.ServeMux, marshaler runtim
 	w.Header().Set("Content-type", marshaler.ContentType())
 	w.WriteHeader(runtime.HTTPStatusFromCode(s.Code()))
 	_, _ = w.Write(resp)
+}
+
+func HelloInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	log.Println(`hello`)
+	resp, err := handler(ctx, req)
+	log.Println(`bye`)
+	return resp, err
 }
